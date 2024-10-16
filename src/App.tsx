@@ -19,7 +19,7 @@ export const App: React.FC = () => {
   const [loadingTodoId, setLoadingTodoId] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleUpdateTodo = (
+  const handleUpdateTodo = async (
     id: number,
     newTitle: string,
     completed: boolean,
@@ -31,7 +31,8 @@ export const App: React.FC = () => {
 
     setLoadingTodoId(id);
 
-    f.patchTodo(id, updatedData)
+    await f
+      .patchTodo(id, updatedData)
       .then(updatedTodo => {
         setTodos(todos =>
           todos.map(todo =>
@@ -43,6 +44,7 @@ export const App: React.FC = () => {
       .catch(() => {
         setLoadingTodoId(null);
         setErrorText('Unable to update a todo');
+        throw new Error("I'm lost");
       });
   };
 
@@ -199,19 +201,41 @@ export const App: React.FC = () => {
     setErrorText('');
   };
 
-  const handleUpdateAllTodo = () => {
+  const handleUpdateAllTodo = async () => {
     if (CompletedTodosCount !== todos.length) {
       // Завершаем все незавершенные задачи
-      todos.forEach(todo => {
-        if (!todo.completed) {
-          handleUpdateTodo(todo.id, todo.title, true); // Устанавливаем completed в true
+      const promises = todos
+        .filter(todo => !todo.completed)
+        .map(todo =>
+          handleUpdateTodo(todo.id, todo.title, true).catch(error => {
+            console.log(`Error updating todo with id ${todo.id}:`, error);
+          }),
+        );
+
+      const results = await Promise.allSettled(promises);
+
+      results.forEach(result => {
+        if (result.status === 'rejected') {
+          console.log('Some todos failed to update:', result.reason);
         }
       });
+      console.log('All incomplete todos processed');
     } else {
       // Снимаем завершение со всех задач
-      todos.forEach(todo => {
-        handleUpdateTodo(todo.id, todo.title, false); // Устанавливаем completed в false
+      const promises = todos.map(todo =>
+        handleUpdateTodo(todo.id, todo.title, false).catch(error => {
+          console.log(`Error updating todo with id ${todo.id}:`, error);
+        }),
+      );
+
+      const results = await Promise.allSettled(promises);
+
+      results.forEach(result => {
+        if (result.status === 'rejected') {
+          console.log('Some todos failed to update:', result.reason);
+        }
       });
+      console.log('All todos processed');
     }
   };
 

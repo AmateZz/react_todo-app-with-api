@@ -71,6 +71,8 @@ export const TodoItem: React.FC<Props> = ({
     } catch (error) {
       setErrorText('Unable to update a todo'); // Сообщение об ошибке
       setIsEditing(true); // Оставляем форму открытой при ошибке
+      console.log('!!!!!!!!!!!!!!!');
+
     } finally {
       setIsSaving(false); // Сбрасываем флаг сохранения
     }
