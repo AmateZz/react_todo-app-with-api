@@ -51,38 +51,46 @@ export const TodoItem: React.FC<Props> = ({
     setIsEditing(true);
   };
 
-  const [isSaving, setIsSaving] = useState(false); // Отслеживаем статус сохранения
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
     const trimmedTitle = editTitle.trim();
 
+    setIsEditing(false);
+
     if (!trimmedTitle) {
-      setErrorText('Title cannot be empty');
-      setEditTitle(title); // Восстанавливаем исходное значение
+      handleDelete();
 
       return;
     }
 
-    setIsSaving(true); // Ставим флаг сохранения
+    setIsSaving(true);
 
     try {
       await handleUpdateTodo(id, trimmedTitle, completed);
-      setIsEditing(false); // Закрываем только при успешном запросе
+      setIsEditing(false);
     } catch (error) {
-      setErrorText('Unable to update a todo'); // Сообщение об ошибке
-      setIsEditing(true); // Оставляем форму открытой при ошибке
+      setErrorText('Unable to update a todo');
+      setIsEditing(true);
     } finally {
-      setIsSaving(false); // Сбрасываем флаг сохранения
+      setIsSaving(false);
     }
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
-      event.preventDefault(); // Предотвращаем побочные эффекты
-      handleSave(); // Сохраняем изменения
+      event.preventDefault();
+
+      const trimmedTitle = editTitle.trim();
+
+      if (!trimmedTitle) {
+        handleDelete();
+      } else {
+        handleSave();
+      }
     } else if (event.key === 'Escape') {
-      setEditTitle(title); // Восстанавливаем старый заголовок
-      setIsEditing(false); // Закрываем форму
+      setEditTitle(title);
+      setIsEditing(false);
     }
   };
 
@@ -95,7 +103,6 @@ export const TodoItem: React.FC<Props> = ({
         editing: isEditing,
       })}
     >
-      {/* StatusToggler: всегда отображается */}
       <label
         className="todo__status-label"
         htmlFor={`todo-checkbox-${id}`}
@@ -122,7 +129,7 @@ export const TodoItem: React.FC<Props> = ({
             onChange={e => setEditTitle(e.target.value)}
             onBlur={e => {
               if (!isSaving && e.relatedTarget !== inputRef.current) {
-                setIsEditing(false); // Закрываем форму, только если сохранение завершено
+                handleSave();
               }
             }}
             onKeyDown={handleKeyDown}
@@ -149,7 +156,6 @@ export const TodoItem: React.FC<Props> = ({
         </>
       )}
 
-      {/* overlay will cover the todo while it is being deleted or updated */}
       <div
         data-cy="TodoLoader"
         className={classNames('modal overlay', {
